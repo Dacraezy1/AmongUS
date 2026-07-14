@@ -1,0 +1,38 @@
+name: Android NDK Build Compiler
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-native:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out workspace code files
+      uses: actions/checkout@v4
+
+    - name: Set up Java Runtime
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Configure Android NDK Toolchain Environment
+      uses: android-actions/setup-android@v3
+
+    - name: Install Target NDK Release Components
+      run: |
+        sdkmanager --install "ndk;26.1.10909125"
+
+    - name: Execute Compiler Engine (ndk-build)
+      run: |
+        $ANDROID_HOME/ndk/26.1.10909125/ndk-build NDK_PROJECT_PATH=. NDK_APPLICATION_MK=jni/Application.mk
+
+    - name: Bundle Compiled Native Binaries
+      uses: actions/upload-artifact@v4
+      with:
+        name: Compiled-AmongUsMod-So
+        path: libs/arm64-v8a/libmod.so
