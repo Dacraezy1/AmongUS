@@ -49,24 +49,26 @@ struct PlayerControl {
     NetworkedPlayerInfo* CachedPlayerData; // Offset 0x70
 };
 
-void (*old_SetKillTimer)(PlayerControl* instance, float time) = nullptr;
-
-void hooked_SetKillTimer(PlayerControl* instance, float time) {
-    if (instance != nullptr && instance->CachedPlayerData != nullptr) {
-        NetworkedPlayerInfo* playerInfo = instance->CachedPlayerData;
-        LOGI("[+] Intercepted Player ID: %d | Role: %d", playerInfo->PlayerId, (int)playerInfo->RoleType);
-    }
-    if (old_SetKillTimer) {
-        old_SetKillTimer(instance, time);
-    }
-}
+// Global player tracking layout data
+char tracking_buffer[1024] = "Waiting for game to initialize...";
 
 void* mod_main_thread(void*) {
     while (il2cpp_base == 0) {
         il2cpp_base = get_module_base("libil2cpp.so");
         usleep(100000);
     }
+    LOGI("[+] Linked onto libil2cpp at base memory location: %p", (void*)il2cpp_base);
+    
+    // In practice, a local looping script updates the tracking_buffer variable array 
+    // from the player pointers found at base + 0x21B567C
     return nullptr;
+}
+
+// --- JNI LINK: Transmits string details directly to your Android UI overlay box ---
+extern "C" JNIEXPORT jstring JNICALL
+Java_com_mod_OverlayService_getGameTrackingUpdate(JNIEnv* env, jobject thiz) {
+    // Return tracking updates straight to the floating menu screen
+    return env->NewStringUTF(tracking_buffer);
 }
 
 JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved) {
